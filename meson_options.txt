@@ -1,0 +1,1 @@
+option('lib_type', type : 'combo', value : 'both', choices : ['static', 'shared', 'default_library', 'both'], description : 'Type of library to build: `default_library` respects ths global `default_library` option')

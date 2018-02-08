@@ -16,19 +16,27 @@ soversion = '1'
 bz2_c_args = ['-D_FILE_OFFSET_BITS=64']
 
 cc = meson.get_compiler('c')
-if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-  # bzip2.c:557: warning: variable nread set but not used
-  bz2_c_args += ['-Wno-unused-but-set-variable']
-elif cc.get_id() == 'msvc'
-  # Ignore C4996 about "insecure functions"
-  bz2_c_args += ['/wd4996']
-endif
+
+foreach arg : [
+  # gcc/clang: bzip2.c:557: warning: variable nread set but not used
+  '-Wno-unused-but-set-variable',
+  # msvc: Ignore C4996 about "insecure functions"
+  '/wd4996'
+]
+  if cc.has_argument(arg)
+    bz2_c_args += [arg]
+  endif
+endforeach
 
 bz2_incs = include_directories('.')
 
 install_headers(['bzlib.h'])
 
-libtype = 'both' # FIXME: make option
+libtype = get_option('lib_type')
+
+if libtype == 'default_library'
+  libtype = get_option('default_library')
+endif
 
 if libtype != 'static'
   libbz2_shared = shared_library('bz2', bzip2_sources,
@@ -51,6 +59,14 @@ if libtype != 'shared'
 #    dependencies : mathlib,
   )
   libbz2 = libbz2_static
+endif
+
+if libtype == 'both'
+  if get_option('default_library') == 'static'
+    libbz2 = libbz2_static
+  else
+    libbz2 = libbz2_shared
+  endif
 endif
 
 bz2_dep = declare_dependency(link_with : libbz2, include_directories : bz2_incs)
